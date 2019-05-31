@@ -1,5 +1,5 @@
 # game-eidolon
-A experimental webgl/2d game
+An experimental webgl/2d game
 
 
 ## demo
