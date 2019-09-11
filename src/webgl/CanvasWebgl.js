@@ -24,29 +24,23 @@ void main() {
 `;
 
 function makeRect(size) {
-  return new Float32Array([
-    0, 0,
-    size, 0,
-    0, size,
-    0, size,
-    size, 0,
-    size, size
-  ]);
+  return makeRect2(size, size);
 }
 
 function makeRect2(width, height) {
-  return new Float32Array([
-    0, 0,
-    width, 0,
-    0, height,
-    0, height,
-    width, 0,
-    width, height
-  ]);
+  return {
+    vertex: new Float32Array([
+      0, 0,
+      width, 0,
+      0, height,
+      width, height
+    ]),
+    index: new Uint8Array([ 0, 1, 2, 3 ]),
+  };
 }
 
 function getColor(r, g, b) {
-  return new Float32Array([r / 255, g / 255, b / 255, 1]);
+  return new Float32Array([ r / 255, g / 255, b / 255, 1 ]);
 }
 
 const barColor = getColor(0, 0, 0);
@@ -70,15 +64,19 @@ const heart = makeRect(heartSize);
 
 function makeBuffer(gl, data) {
   // Create a buffer to put positions in
-  const brickBuffer = gl.createBuffer();
+  const vertextBuffer = gl.createBuffer();
   // Bind it to ARRAY_BUFFER (think of it as ARRAY_BUFFER = positionBuffer)
-  gl.bindBuffer(gl.ARRAY_BUFFER, brickBuffer);
+  gl.bindBuffer(gl.ARRAY_BUFFER, vertextBuffer);
   // Put geometry data into buffer
   gl.bufferData(
     gl.ARRAY_BUFFER,
-    data,
+    data.vertex,
     gl.STATIC_DRAW);
-  return brickBuffer;
+  var indexBuffer = gl.createBuffer();
+  gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+  gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, data.index, gl.STATIC_DRAW);
+
+  return { vertextBuffer, indexBuffer };
 }
 
 function CanvasWebgl() {
@@ -137,7 +135,8 @@ CanvasWebgl.prototype = {
     // Turn on the attribute
     gl.enableVertexAttribArray(this.positionLocation);
     // Bind the position buffer.
-    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer.vertextBuffer);
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer.indexBuffer);
     // Tell the attribute how to get data out of positionBuffer (ARRAY_BUFFER)
     var size = 2;          // 2 components per iteration
     var type = gl.FLOAT;   // the data is 32bit floats
@@ -158,10 +157,10 @@ CanvasWebgl.prototype = {
     // Set the matrix.
     gl.uniformMatrix3fv(this.matrixLocation, false, matrix);
     // Draw the geometry.
-    var primitiveType = gl.TRIANGLES;
+    var primitiveType = gl.TRIANGLE_STRIP;
     offset = 0;
-    var count = 6;  // 6 triangles in the 'F', 3 points per triangle
-    gl.drawArrays(primitiveType, offset, count);
+    var count = 4;
+    gl.drawElements(primitiveType, count, gl.UNSIGNED_BYTE, offset);
   },
 
   unDraw(XX, YY, l) {
@@ -195,7 +194,7 @@ CanvasWebgl.prototype = {
   },
 
   drawProgress(XX, YY, perc) {
-    this.draw(this.barBuffer, barColor, XX, YY,perc/100);
+    this.draw(this.barBuffer, barColor, XX, YY, perc / 100);
   },
 };
 
